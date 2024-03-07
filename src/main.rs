@@ -18,8 +18,8 @@ fn main() {
     println!("\n[*] CS2 TRIGGER");
     println!("[*] OFF BY DEFAULT");
 
-    let display = Display::primary().expect("Couldn't find main display.");
-    let mut capturer = Capturer::new(display).expect("Couldn't begin capture.");
+    let display = Display::primary().expect("[-] couldn't find main display");
+    let mut capturer = Capturer::new(display).expect("[-] couldn't begin capture");
     let width = capturer.width();
 
     let frame_data = capture_frame(&mut capturer);
@@ -50,12 +50,16 @@ fn main() {
             for key in &keys {
                 match key {
                     Keycode::L => {
-                        active = true;
-                        println!("\n[*] trigger ON");
+                        if !active {
+                            active = true;
+                            println!("\n[*] trigger ON");
+                        }
                     }
                     Keycode::K => {
-                        active = false;
-                        println!("[*] trigger OFF");
+                        if active {
+                            active = false;
+                            println!("[*] trigger OFF");
+                        }
                     }
                     Keycode::A => {
                         if active {
@@ -93,12 +97,16 @@ fn main() {
 }
 
 fn analyze_frame(frame_data: Vec<u8>, width: usize, prev_state: Vec<u8>) -> bool {
+    if frame_data[4 * (10 * width + 10)] > 190 && frame_data[4 * (10 * width + 10)+1] > 190 && frame_data[4 * (10 * width + 10)+2] > 190 && frame_data[4 * (10 * width + 1910)] > 190 && frame_data[4 * (10 * width + 1910)+1] > 190 && frame_data[4 * (10 * width + 1910)+2] > 190 && frame_data[4 * (540 * width + 960)] > 190  && frame_data[4 * (540 * width + 960)+1] > 190  && frame_data[4 * (540 * width + 960)+2] > 190
+    {
+        return false;
+    }
     let mut same = true;
     for y in 538.. 542 {
         for x in 959..961 {
             let index = (y * width + x) * 4;  // Calculate the index of the pixel in the byte slice
 
-            let prev_color = Color{ r: prev_state[index+2], g: prev_state[index+1], b: prev_state[index] };
+            let prev_color = Color{ r: prev_state[index + 2], g: prev_state[index + 1], b: prev_state[index] };
             let cur_color = Color{ r: frame_data[index + 2], g: frame_data[index + 1], b: frame_data[index] };
 
             same = compare_rgb(prev_color, cur_color, 30);
@@ -124,7 +132,7 @@ fn capture_frame(capturer: &mut Capturer) -> Vec<u8> {
                 thread::sleep(Duration::from_millis(1));
                 continue;
             },
-            Err(e) => panic!("Error: {}", e),
+            Err(e) => panic!("[-] error: {}", e),
         }
     }
 }
