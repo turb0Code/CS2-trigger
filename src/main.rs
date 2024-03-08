@@ -1,4 +1,3 @@
-extern crate scrap;
 use device_query::{DeviceQuery, DeviceState, Keycode};
 use scrap::{Capturer, Display};
 use enigo::*;
@@ -33,14 +32,18 @@ fn main() {
     let mut active = false;
     let mut same = false;
     let mut frame_data: Vec<u8>;
+    let y_mid = capturer.height()/2;
+    let x_mid = &width/2;
+    let tolerance = 30_u8;
 
+    println!("[*] tolerance set to {}", tolerance);
     println!("[+] set up all components \n");
 
     loop {
         let start = Instant::now();  // STARTED MEASURING
 
         frame_data = capture_frame(&mut capturer);
-        same = analyze_frame(frame_data.clone(), width, state.clone());
+        same = analyze_frame(frame_data.clone(), state.clone(), &tolerance, width, &x_mid, &y_mid);
         state = frame_data;
 
         let duration = start.elapsed();  // MEASURE DONE
@@ -96,27 +99,27 @@ fn main() {
 
 }
 
-fn analyze_frame(frame_data: Vec<u8>, width: usize, prev_state: Vec<u8>) -> bool {
-    if frame_data[4 * (10 * width + 10)] > 190 && frame_data[4 * (10 * width + 10)+1] > 190 && frame_data[4 * (10 * width + 10)+2] > 190 && frame_data[4 * (10 * width + 1910)] > 190 && frame_data[4 * (10 * width + 1910)+1] > 190 && frame_data[4 * (10 * width + 1910)+2] > 190 && frame_data[4 * (540 * width + 960)] > 190  && frame_data[4 * (540 * width + 960)+1] > 190  && frame_data[4 * (540 * width + 960)+2] > 190
+fn analyze_frame(frame_data: Vec<u8>, prev_state: Vec<u8>, tolerance: &u8, width: usize, x_mid: &usize, y_mid: &usize) -> bool {
+    if frame_data[4 * (10 * width + 10)] > 190 && frame_data[4 * (10 * width + 10)+1] > 190 && frame_data[4 * (10 * width + 10)+2] > 190 && frame_data[4 * (10 * width + width-10)] > 190 && frame_data[4 * (10 * width + width - 10)+1] > 190 && frame_data[4 * (10 * width + width - 10)+2] > 190 && frame_data[4 * (y_mid * width + x_mid)] > 190  && frame_data[4 * (y_mid * width + x_mid)+1] > 190  && frame_data[4 * (y_mid * width + x_mid)+2] > 190
     {
         return false;
     }
     let mut same = true;
-    for y in 538.. 542 {
-        for x in 959..961 {
+    for y in y_mid-1.. y_mid+2 {
+        for x in x_mid-1..x_mid+2 {
             let index = (y * width + x) * 4;  // Calculate the index of the pixel in the byte slice
 
             let prev_color = Color{ r: prev_state[index + 2], g: prev_state[index + 1], b: prev_state[index] };
             let cur_color = Color{ r: frame_data[index + 2], g: frame_data[index + 1], b: frame_data[index] };
 
-            same = compare_rgb(prev_color, cur_color, 30);
+            same = compare_rgb(prev_color, cur_color, tolerance);
         }
     }
     same
 }
 
-fn compare_rgb(rgb_old: Color, rgb_new: Color, tolerance: u8) -> bool {
-    if u8::abs_diff(rgb_old.r, rgb_new.r) > tolerance && u8::abs_diff(rgb_old.g, rgb_new.g) > tolerance && u8::abs_diff(rgb_old.b, rgb_new.b) > tolerance {
+fn compare_rgb(rgb_old: Color, rgb_new: Color, tolerance: &u8) -> bool {
+    if u8::abs_diff(rgb_old.r, rgb_new.r) > *tolerance && u8::abs_diff(rgb_old.g, rgb_new.g) > *tolerance && u8::abs_diff(rgb_old.b, rgb_new.b) > *tolerance {
         return false;
     }
     true
