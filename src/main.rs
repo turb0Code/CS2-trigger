@@ -4,7 +4,6 @@ use enigo::*;
 use std::io::ErrorKind::WouldBlock;
 use std::time::{Duration, Instant};
 use std::clone::Clone;
-use std::collections::hash_set::Difference;
 use std::thread;
 
 struct Color {
